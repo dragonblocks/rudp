@@ -7,14 +7,14 @@
 #include <string.h>
 
 
-#ifdef WIN32	//Windows
+#ifdef _WIN32	//Windows
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
 #if defined(__cplusplus) && defined(USE_MFC)
 #include <afx.h>
 #else
-#define WIN32_LEAN_AND_MEAN
+#define _WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
 
@@ -201,7 +201,7 @@ int PA_Read(PA_HFILE hFile, void *pBuff, unsigned int size);
 }
 #endif
 
-#elif defined(__LINUX__) || defined(__ANDROID__)
+#elif defined(__linux__)
 //
 // OS:  Linux
 //
@@ -451,7 +451,7 @@ struct LwipIoVec {
 
 #else
 
-#error "Platform must be specified !"
+#error "Platform not supported"
 
 #endif	
 
@@ -476,7 +476,7 @@ BOOL PA_PipeClose(PA_PIPE hPipe);
  *  Debug
  */
 #ifdef _DEBUG
-	#if defined(WIN32) && defined(__cplusplus) && defined(_USE_MFC) && !defined(_CONSOLE)
+	#if defined(_WIN32) && defined(__cplusplus) && defined(_USE_MFC) && !defined(_CONSOLE)
 		#define dbg_msg TRACE
 		#define PRINTF TRACE
 	#else
@@ -485,7 +485,7 @@ BOOL PA_PipeClose(PA_PIPE hPipe);
 	#endif
 void dbg_bin(const char *title, const void *p, int size);
 #else
-	#ifdef WIN32
+	#ifdef _WIN32
 		#define dbg_msg(fmt, __VA_ARGS__)
 	#else
 		#define dbg_msg(fmt, args...)
@@ -509,7 +509,7 @@ void android_log(int level, const char *tag, const char *sfmt, ...);
 #define LOGW(sfmt, args...) do { dbg_msg(sfmt, ##args); dbg_msg("\n"); } while(0)
 #define LOGE(sfmt, args...) do { dbg_msg(sfmt, ##args); dbg_msg("\n"); } while(0)
 
-#elif defined(WIN32)
+#elif defined(_WIN32)
 
 #define LOG(sfmt, ...) do { dbg_msg(sfmt, __VA_ARGS__); dbg_msg("\n"); } while(0)
 #define LOGW(sfmt, ...) do { dbg_msg(sfmt, __VA_ARGS__); dbg_msg("\n"); } while(0)

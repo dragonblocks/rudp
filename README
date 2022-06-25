@@ -9,24 +9,3 @@ A simple implementation of Reliable UDP.
 3) Two logical channels(send/recv queue) in one connection
 4) Safe for multiple threads
 5) Compiled on Linux/Windows
-
-2. Compile
-
-1) Generate library:
-
-# make
-
-2) Generate test
-
-# make test
-
-3. Install
-
-You need to copy following header files to your project:
-
-  basetype.h
-  platform-adpt.h
-  rudp.h
-
-plus the library file:
-  XXX/librudp.a

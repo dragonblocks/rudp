@@ -128,12 +128,12 @@ int _ClientPunchCb(RUDPSOCKET s, int status, void *data)
 	{
 	case CONNSTATUS_CONNECTED:
 	case CONNSTATUS_ACCEPTED:
-		if(RUDPSend(s, (char*)data, sizeof(struct dcs_header) + ntohl(((struct dcs_header*)data)->length), 0) < 0)
+		if(RUDPSend(s, 0, (char*)data, sizeof(struct dcs_header) + ntohl(((struct dcs_header*)data)->length), 0) < 0)
 			break;
 		return CHECKCONNECTION_CONTINUE;
 
 	case CONNSTATUS_READABLE:
-		len = RUDPRecv(s, &chno, &dp, sizeof(dp));
+		len = RUDPRecv(s, 0, &chno, &dp, sizeof(dp));
 		if(len >= sizeof(struct dcs_header) && check_dcs_header(&dp.dh) && dp.dh.cls == CLS_RESPONSE && dp.dh.st == ST_IPCAM)
 			return(dp.dh.status == 0)?CHECKCONNECTION_OK:-dp.dh.status;
 		else

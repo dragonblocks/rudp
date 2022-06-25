@@ -5,7 +5,7 @@
 #define OUT
 #define INOUT
 
-#ifdef WIN32
+#ifdef _WIN32
 
 typedef char                    int8_t;
 typedef unsigned char           uint8_t;
@@ -30,7 +30,7 @@ typedef unsigned __int64        uint64_t;
 #define __UNLIKELY(x)	x
 
 
-#elif defined(__LINUX__) || defined(__ANDROID__)
+#elif defined(__linux__)
 
 typedef unsigned char BYTE;
 typedef unsigned short WORD;

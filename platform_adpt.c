@@ -1,7 +1,7 @@
 #include "platform_adpt.h"
 #include <stdlib.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 
 void PA_NetLibInit()
 {
@@ -181,7 +181,7 @@ void RWLockUnlock(RWLOCK *pLock)
 
 
 /////////////////////////////////////////////////////////
-#elif defined(__LINUX__) || defined(__ANDROID__)
+#elif defined(__linux__)
 
 BOOL PA_EventWaitTimed(PA_EVENT e, DWORD ms)
 {
@@ -327,7 +327,7 @@ int PA_SocketSetLinger(PA_SOCKET s, int onoff, int linger)
 {
 	struct linger opt = { onoff, linger };
 	return setsockopt(s, SOL_SOCKET, SO_LINGER, 
-#ifdef WIN32
+#ifdef _WIN32
 		(const char*)&opt, 
 #else
 		&opt,

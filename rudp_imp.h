@@ -269,7 +269,7 @@ struct rudp_socket {
 	struct rudp_pcb *pcb;		//for
 
 	PA_MUTEX	mutex_r, mutex_w;
-#ifdef WIN32
+#ifdef _WIN32
 	HANDLE	event_r, event_w;
 #else
 	pthread_cond_t event_r, event_w;

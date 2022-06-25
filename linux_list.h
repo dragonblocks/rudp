@@ -1,7 +1,7 @@
 #ifndef __LIST_H
 #define __LIST_H
 
-#if defined(WIN32)
+#if defined(_WIN32)
 #define INLINE __inline
 #else
 #define INLINE inline

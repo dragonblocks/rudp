@@ -17,9 +17,9 @@
 #define offsetof(s, m) ((int)(&((s*)0)->m))
 #endif
 
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 #define SETEVENT(event) PA_SetEvent(event)
-#elif defined(__LINUX__) || defined(__ANDROID__)
+#elif defined(__linux__)
 #define SETEVENT(event) pthread_cond_signal(&event)
 #endif
 #define SAFE_FREE(p) if(p) { free(p); p = NULL; }
@@ -74,7 +74,7 @@ static void _printTime()
 {
 	char sf[16];
 #if defined(ARM_UCOS_LWIP)
-#elif defined(WIN32)
+#elif defined(_WIN32)
 	SYSTEMTIME t;
 	GetLocalTime(&t);
 	sprintf(sf, "%.06f", t.wMilliseconds/1000.0);
@@ -130,7 +130,7 @@ static void __printHdr(const struct rudp_pcb *pcb, const struct rudp_hdr *phdr, 
 		PRINTF("]");
 	}
 	PRINTF("\n");
-#if defined(WIN32)
+#if defined(_WIN32)
 	fflush(stdout);
 #endif
 }
@@ -230,7 +230,7 @@ static struct rudp_socket *_AllocRudpSocket()
 
 	PA_MutexInit(sock->mutex_r);
 	PA_MutexInit(sock->mutex_w);
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	PA_EventInit(sock->event_r);
 	PA_EventInit(sock->event_w);
 #else
@@ -340,7 +340,7 @@ static void _CleanupSocket(struct rudp_socket *s, int err)
 
 	PA_MutexUninit(s->mutex_r);
 	PA_MutexUninit(s->mutex_w);
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	PA_EventUninit(s->event_r);
 	PA_EventUninit(s->event_w);
 #else
@@ -856,11 +856,7 @@ void _updateRTO(struct rudp_socket *s, int rtt)
 
 INLINE BOOL _isPacketValid(struct rudp_pkt *pkt)
 {
-#ifdef _DEBUG
-	return (calc_crc32(0, (char*)&pkt->hdr, offsetof(struct rudp_hdr, crc32)) == pkt->hdr.crc32)?TRUE:(printf("Invalid packet!\n"),FALSE);
-#else
-	return calc_crc32(0, (char*)&pkt->hdr, offsetof(struct rudp_hdr, crc32)) == pkt->hdr.crc32;
-#endif
+
 }
 
 int _DispatchPacket(struct rudp_socket *s, struct rudp_pkt *pkt, const struct sockaddr *from, int from_len)
@@ -1463,13 +1459,17 @@ PA_THREAD_RETTYPE __STDCALL _RUDPServiceThread(void *pdata)
 						if(pkt)
 						{
 							len = PA_RecvFrom(s->udp_sock, &pkt->hdr, MAX_PACKET_SIZE, 0, &from, &from_len);
-							if(len < 0 || len < sizeof(struct rudp_hdr) || pkt->hdr.flags.rudp != RUDP_HEADER_TAG ||
-									!_isPacketValid(pkt)) 
+							if(len < 0 || len < sizeof(struct rudp_hdr) || pkt->hdr.flags.rudp != RUDP_HEADER_TAG || !(
+#ifdef _DEBUG
+									(calc_crc32(0, (char*)&pkt->hdr, offsetof(struct rudp_hdr, crc32)) == pkt->hdr.crc32)?TRUE:(printf("Invalid packet!\n"),FALSE)))
+#else
+									calc_crc32(0, (char*)&pkt->hdr, offsetof(struct rudp_hdr, crc32)) == pkt->hdr.crc32))
+#endif
 							{ 
 								if(len < 0)
 								{
 #ifdef _DEBUG
-#if defined(WIN32)
+#if defined(_WIN32)
 									int err = WSAGetLastError();
 									if(err != WSAEWOULDBLOCK)
 										dbg_msg("recvfrom error: %d\n", err);
@@ -1738,7 +1738,7 @@ int RUDPListen(RUDPSOCKET sock, int n)
 	INIT_LIST_HEAD(&s->listen_queue);
 	s->state = RS_LISTEN;
 
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	{
 	int opt;
 	opt = 100*1024;//1500*s->pcb->channel[0].sbuf.rwin_size/2;
@@ -1761,7 +1761,7 @@ int RUDPAccept(RUDPSOCKET sock, RUDPSOCKET *accepted, struct sockaddr *addr, int
 	*accepted = NULL;
 wait:
 	PA_MutexLock(s->mutex_r);
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	if(list_empty(&s->listen_queue))
 	{
 		PA_MutexUnlock(s->mutex_r);
@@ -1855,7 +1855,7 @@ int RUDPConnect(RUDPSOCKET sock, const struct sockaddr* addr, int addr_len)
 	if(s->flags & RF_NBLK)
 		return ERUDP_AGAIN;
 
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	PA_EventWait(s->event_w);
 #else
 	PA_MutexLock(s->mutex_w);
@@ -1942,7 +1942,7 @@ int RUDPSendV(RUDPSOCKET sock, int chno, const PA_IOVEC *v, unsigned int size, i
 	}
 	
 
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	if(ps->n_pkt >= ps->max_pkts && s->state != RS_DEAD)
 	{
 		if((flags & RUDPMSG_DONTWAIT) || (s->flags & RF_NBLK))
@@ -2071,7 +2071,7 @@ int RUDPSendVEx(RUDPSOCKET sock, int chno, int priority, const PA_IOVEC *v, unsi
 	}
 	
 
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	if(ps->n_pkt >= ps->max_pkts && s->state != RS_DEAD)
 	{
 		if((flags & RUDPMSG_DONTWAIT) || (s->flags & RF_NBLK))
@@ -2205,7 +2205,7 @@ int RUDPSend(RUDPSOCKET sock, int chno, const void *ptr, int len, int flags)
 	 * If the sending-queue is full, wait on this queue.
 	 * The actual sending is done in the service thread.
 	 */
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	while(ps->n_pkt >= ps->max_pkts && s->state != RS_DEAD)
 	{
 		if((flags & RUDPMSG_DONTWAIT) || (s->flags & RF_NBLK))
@@ -2317,7 +2317,7 @@ int RUDPSendEx(RUDPSOCKET sock, int chno, int priority, const void *ptr, int len
 	 * If the sending-queue is full, wait on this queue.
 	 * The actual sending is done in the service thread.
 	 */
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	while(ps->n_pkt >= ps->max_pkts && s->state != RS_DEAD)
 	{
 		if((flags & RUDPMSG_DONTWAIT) || (s->flags & RF_NBLK))
@@ -2430,7 +2430,7 @@ int RUDPRecv(RUDPSOCKET sock, int *chno, void *ptr, int len, int flags)
 	}
 wait_data:
 	no_data=1;
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	for(i=0; i<MAX_PHY_CHANNELS; i++)
 	{
 		prb = &pcb->channel[i].rbuf;
@@ -2557,7 +2557,7 @@ int RUDPRecvChn(RUDPSOCKET sock, int *chno, void *ptr, int len, int flags)
 	prb = &pcb->channel[PHY_CHN(*chno)].rbuf;
 
 wait_data:
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 	if(!prb->pkt_q[prb->head])
 	{
 		PA_MutexUnlock(s->mutex_r);
@@ -2649,14 +2649,14 @@ wait_data:
 int RUDPSelectSock(RUDPSOCKET sock, int chno, int flag, const struct timeval *timeout)
 {
 	struct rudp_socket *s;
-#if defined(__LINUX__) || defined(__ANDROID__)
+#ifdef __linux__
 	struct timespec ts;
 #endif
 	s = (struct rudp_socket*)sock;
 	if(s->tag != RUDP_SOCKET_TAG) return ERUDP_NOT_SOCKET;
 
 
-#if defined(__LINUX__) || defined(__ANDROID__)
+#ifdef __linux__
 	if(timeout)
 	{
 		clock_gettime(CLOCK_REALTIME, &ts);
@@ -2711,7 +2711,7 @@ int RUDPSelectSock(RUDPSOCKET sock, int chno, int flag, const struct timeval *ti
 
 			if(no_data)
 			{
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 				PA_MutexUnlock(s->mutex_r);
 				if(timeout)
 					no_data = !PA_EventWaitTimed(s->event_r, timeout->tv_sec*1000+timeout->tv_usec/1000);
@@ -2753,7 +2753,7 @@ int RUDPSelectSock(RUDPSOCKET sock, int chno, int flag, const struct timeval *ti
 		ps = &s->pcb->channel[chno].sbuf;
 		if(ps->n_pkt >= ps->max_pkts && s->state != RS_DEAD)
 		{
-#if defined(WIN32) || defined(ARM_UCOS_LWIP)
+#if defined(_WIN32) || defined(ARM_UCOS_LWIP)
 			PA_MutexUnlock(s->mutex_w);
 			if(timeout)
 				writable = PA_EventWaitTimed(s->event_w, timeout->tv_sec*1000+timeout->tv_usec/1000); 
